@@ -1,0 +1,60 @@
+{% extends 'shop/base.html' %}
+{% load static %}
+{% block title %}Shop{% endblock title %}
+{% block main-content %}
+    <div class="container d-flex justify-content-between mt-5 flex-wrap">
+        {% if products|length > 0 %}
+            {% for item in products %}
+                <div class="card" style="width: 32%; height: auto">
+                    <img src="{{ item.image.url }}" class="card-img-top" style="height: 100%; width: auto" alt="{{ item.title }}">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ item.title }}</h5>
+                        <p class="card-text">{{ item.description }}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <p class="card-text fw-bold pt-3">${{ item.get_price }}</p>
+                            {% if item.title in cart_list %}
+                                <a pid="{{ item.pk }}" class="remove-from-cart btn btn-danger">Remove from Cart</a>
+                            {% else %}
+                                <a pid="{{ item.pk }}" class="add-to-cart btn btn-success">Add to Cart</a>
+                            {% endif %}
+                            <a href="#" class="btn btn-primary">Buy Now</a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <h1 class="text-danger text-center">Our shop doesn't have products</h1>
+        {% endif %}
+    </div>
+{% endblock main-content %}
+{% block script %}
+    <script>
+        $('.add-to-cart').click(function(){
+            let id = $(this).attr('pid').toString();
+            $.ajax({
+                type: 'GET',
+                url: '{% url 'add-to-cart' %}',
+                data: {
+                    prod_id: id
+                },
+                success: function(data){
+                    document.location.reload();
+                }
+            });
+        });
+
+        $('.remove-from-cart').click(function(){
+            let id = $(this).attr('pid').toString();
+            $.ajax({
+                type: 'GET',
+                url: '{% url 'remove-from-cart' %}',
+                data: {
+                    prod_id: id
+                },
+                success: function(data){
+                    document.location.reload();
+                }
+            });
+        });
+    </script>
+{% endblock script %}

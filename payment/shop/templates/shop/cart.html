@@ -1,0 +1,113 @@
+{% extends 'shop/base.html' %}
+{% load static %}
+{% block title %}Cart{% endblock title %}
+{% block main-content %}
+    {% if cart|length > 0 %}
+        <div class="container-fluid mt-5">
+            <div class="row">
+                <div class="col-sm-8 overflow-auto border-end border-secondary" style="height: 70vh">
+                    {% for item in cart %}
+                        <div class="d-flex justify-content-between align-items-center pe-5 border border-secondary mb-5 rounded-4" style="width: 100%; height: 100px">
+                            <img src="{{ item.product.image.url }}" class="ms-3" style="height: 100%; width: auto" alt="{{ item.product.title }}">
+                            <h5 class="card-title">{{ item.product.title }}</h5>
+                            <p class="card-text fw-bold pt-3">${{ item.product.get_price }}</p>
+                            <a class="minus-cart btn" pid="{{ item.product.pk }}"><i class="fas fa-minus-square fa-lg"></i></a>
+                            <span id="quantity">{{ item.quantity }}</span>
+                            <a class="plus-cart btn" pid="{{ item.product.pk }}"><i class="fas fa-plus-square fa-lg"></i></a>
+                            <a pid="{{ item.product.pk }}" class="remove-from-cart btn btn-danger">Remove from Cart</a>
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="col-sm-4">
+                    <h3 class="text-center">Total amount</h3><br>
+                    {% for item in cart %}
+                        <p class="fw-bold ms-5" style="font-size: 130%">{{ item.product.title }}:&nbsp; ${{ item.get_full_price }}</p>
+                    {% endfor %}
+                    <div class="d-flex justify-content-around">
+                        <h4 class="mt-4">Total price:&nbsp; ${{ total_price_str }}</h4>
+                        {% csrf_token %}
+                        <button class="btn btn-primary mt-3 pt-2" type="submit" id="payment-button">Payment</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <h1 class="text-danger text-center mt-5">You don't have products in your cart</h1>
+    {% endif %}
+{% endblock main-content %}
+{% block script %}
+    <script>
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        let stripe = Stripe("{{ STRIPE_PUBLIC_KEY }}");
+        let paymentButton = document.getElementById('payment-button');
+
+        paymentButton.addEventListener("click", function(){
+            fetch("{% url 'create-checkout-session' products_id %}", {
+                method: "POST",
+                headers: {
+                    'X-CSRFToken': csrftoken
+                }
+            })
+                .then(function(response){
+                    return response.json();
+                 })
+                .then(function(session){
+                    return stripe.redirectToCheckout({sessionId: session.id});
+                })
+                .then(function(result){
+                    if(result.error){
+                        alert(result.error.message);
+                    }
+                })
+                .catch(function(error){
+                    console.error("Error:", error);
+                });
+        });
+
+        $('.plus-cart').click(function(){
+            let id = $(this).attr("pid").toString();
+            let eml = this.parentNode.children[4];
+            $.ajax({
+                type: "GET",
+                url: "{% url 'plus_cart' %}",
+                data: {
+                    prod_id: id
+                },
+                success: function(data){
+                    eml.innerText = data.quantity;
+                    document.location.reload();
+                }
+            });
+        });
+
+        $('.minus-cart').click(function(){
+            let id = $(this).attr("pid").toString();
+            let eml = this.parentNode.children[4];
+            $.ajax({
+                type: "GET",
+                url: "{% url 'minus_cart' %}",
+                data: {
+                    prod_id: id
+                },
+                success: function(data){
+                    eml.innerText = data.quantity;
+                    document.location.reload();
+                }
+            });
+        });
+        
+        $('.remove-from-cart').click(function(){
+            let id = $(this).attr('pid').toString();
+            $.ajax({
+                type: 'GET',
+                url: '{% url 'remove-from-cart' %}',
+                data: {
+                    prod_id: id
+                },
+                success: function(data){
+                    document.location.reload();
+                }
+            });
+        });
+    </script>
+{% endblock script %}
